@@ -31,7 +31,7 @@ EOF
 test(){
   minikube tunnel --cleanup
   # minikube service --url productpage
-  curl --user alice:password -i http://127.0.0.1:53198/productpage
+  curl --user alice:password -i http://127.0.0.1/productpage
   curl --user alice:password -i http://127.0.0.1/api/v1/products
 }
 

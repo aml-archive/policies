@@ -89,12 +89,11 @@ data:
       envoy_ext_authz_grpc:
         addr: :9191
         query: data.envoy.authz.allow
-        # path: istio/authz/allow
-        # dry-run: false
+        # path: envoy/authz/allow
         # enable-reflection: false
     decision_logs:
       console: true
-    # policy bundle at: https://ticcaml.github.io//bundles/authz.gz
+    # policy bundle at: https://ticcaml.github.io/bundles/authz.gz
     services:
       - name: controller
         url: https://ticcaml.github.io
