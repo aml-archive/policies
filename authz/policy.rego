@@ -1,4 +1,4 @@
-package istio.authz
+package envoy.authz
 
 import input.attributes.request.http as http_request
 import input.parsed_path
@@ -6,41 +6,39 @@ import input.parsed_path
 default allow = false
 
 allow {
-    parsed_path[0] == "health"
-    http_request.method == "GET"
+	parsed_path[0] == "health"
+	http_request.method == "GET"
 }
 
 allow {
-    roles_for_user[r]
-    required_roles[r]
+	roles_for_user[r]
+	required_roles[r]
 }
 
 roles_for_user[r] {
-    r := user_roles[user_name][_]
+	r := user_roles[user_name][_]
 }
 
 required_roles[r] {
-    perm := role_perms[r][_]
-    perm.method = http_request.method
-    perm.path = http_request.path
+	perm := role_perms[r][_]
+	perm.method = http_request.method
+	perm.path = http_request.path
 }
 
 user_name = parsed {
-    [_, encoded] := split(http_request.headers.authorization, " ")
-    [parsed, _] := split(base64url.decode(encoded), ":")
+	[_, encoded] := split(http_request.headers.authorization, " ")
+	[parsed, _] := split(base64url.decode(encoded), ":")
 }
 
 user_roles = {
-    "alice": ["guest"],
-    "bob": ["admin"]
+	"alice": ["guest"],
+	"bob": ["admin"],
 }
 
 role_perms = {
-    "guest": [
-        {"method": "GET",  "path": "/productpage"},
-    ],
-    "admin": [
-        {"method": "GET",  "path": "/productpage"},
-        {"method": "GET",  "path": "/api/v1/products"},
-    ],
+	"guest": [{"method": "GET", "path": "/productpage"}],
+	"admin": [
+		{"method": "GET", "path": "/productpage"},
+		{"method": "GET", "path": "/api/v1/products"},
+	],
 }
