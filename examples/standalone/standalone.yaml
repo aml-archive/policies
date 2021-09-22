@@ -1,0 +1,183 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: opa
+  labels:
+    app: opa
+spec:
+  ports:
+  - name: grpc
+    port: 9191
+    targetPort: 9191
+  selector:
+    app: opa
+---
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: opa
+  labels:
+    app: opa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opa
+  template:
+    metadata:
+      labels:
+        app: opa
+    spec:
+      containers:
+        - name: opa
+          image: openpolicyagent/opa:latest-envoy
+          securityContext:
+            runAsUser: 1111
+          volumeMounts:
+          - name: opa-policy
+            mountPath: /policy
+            readOnly: true
+          - name: opa-config
+            mountPath: /config
+            readOnly: true
+          args:
+          - "run"
+          - "--server"
+          - "--config-file=/config/config.yaml"
+          - "--addr=localhost:8181"
+          - "--diagnostic-addr=0.0.0.0:8282"
+          # - "--set=plugins.envoy_ext_authz_grpc.addr=:9191"
+          # - "--set=plugins.envoy_ext_authz_grpc.query=data.envoy.authz.allow"
+          - "--set=decision_logs.console=true"
+          - "--ignore=.*"
+          - "/policy/policy.rego"
+          ports:
+          - containerPort: 9191
+          livenessProbe:
+            httpGet:
+              path: /health?plugins
+              scheme: HTTP
+              port: 8282
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /health?plugins
+              scheme: HTTP
+              port: 8282
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: opa-config
+          configMap:
+            name: opa-config
+        - name: opa-policy
+          configMap:
+            name: opa-policy
+---
+
+# OPA configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opa-config
+data:
+  config.yaml: |
+    plugins:
+      envoy_ext_authz_grpc:
+        addr: :9191
+        query: data.envoy.authz.allow
+        # path: istio/authz/allow
+        # dry-run: false
+        # enable-reflection: false
+    decision_logs:
+      console: true
+    # policy bundle at: https://ticcaml.github.io//bundles/authz.gz
+    services:
+      - name: controller
+        url: https://ticcaml.github.io
+    bundles:
+      authz:
+        service: controller
+        resource: bundles/bundle.tar.gz
+---
+
+# OPA policy
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opa-policy
+data:
+  policy.rego: |
+    package envoy.authz
+
+    import input.attributes.request.http as http_request
+    import input.parsed_path
+
+    default allow = false
+
+    # allow {
+    #     parsed_path[0] == "health"
+    #     http_request.method == "GET"
+    # }
+    #
+    # allow {
+    #     roles_for_user[r]
+    #     required_roles[r]
+    #     # action_allowed
+    # }
+    #
+    # action_allowed {
+    #     startswith(http_request.path, "/productpage")
+    # }
+    #
+    # roles_for_user[r] {
+    #     r := user_roles[user_name][_]
+    # }
+    #
+    # required_roles[r] {
+    #     perm := role_perms[r][_]
+    #     perm.method = http_request.method
+    #     perm.path = http_request.path
+    # }
+    #
+    # user_name = parsed {
+    #     [_, encoded] := split(http_request.headers.authorization, " ")
+    #     [parsed, _] := split(base64url.decode(encoded), ":")
+    # }
+    #
+    # user_roles = {
+    #     "alice": ["guest"],
+    #     "bob": ["admin"]
+    # }
+    #
+    # role_perms = {
+    #     "guest": [
+    #         {"method": "GET",  "path": "/productpage"},
+    #     ],
+    #     "admin": [
+    #         {"method": "GET",  "path": "/productpage"},
+    #         {"method": "GET",  "path": "/api/v1/products"},
+    #     ],
+    # }
+---
+
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: opa-authz
+  # namespace: istio-system
+spec:
+  selector:
+    matchLabels:
+      app: productpage
+      # namespace: default
+  action: CUSTOM
+  provider:
+    name: opa-authz
+  rules:
+    - to:
+        - operation:
+            paths: ["/*"]
