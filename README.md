@@ -1,6 +1,6 @@
 # Open Policy Agent
 
-OPA runs within Istio as an external authorization service. Istio can be configured to delegate complex authz requests to OPA.
+[Open Policy Agent](https://www.openpolicyagent.org/docs/latest/) (OPA) runs within Istio as an external authorization service. Istio can be configured to delegate complex authz requests to OPA.
 
 See [this article](https://istio.io/latest/blog/2021/better-external-authz/) for more.
 
