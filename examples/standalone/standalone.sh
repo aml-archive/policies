@@ -29,10 +29,12 @@ EOF
 
 # test
 test(){
-  minikube tunnel --cleanup
+  # minikube tunnel --cleanup
   # minikube service --url productpage
-  curl --user alice:password -i http://127.0.0.1/productpage
-  curl --user alice:password -i http://127.0.0.1/api/v1/products
+  PORT=$(kubectl get service istio-ingressgateway -n istio-system --output='jsonpath={.spec.ports[?(@.name=="http2")].nodePort}')
+  ADDR=$(minikube ip)
+  curl --user alice:password -i http://$ADDR:$PORT/productpage
+  curl --user alice:password -i http://$ADDR:$PORT/api/v1/products
 }
 
 # clean up

@@ -93,14 +93,14 @@ data:
         # enable-reflection: false
     decision_logs:
       console: true
-    # policy bundle at: https://ticcaml.github.io/bundles/authz.gz
+    # policy bundle at: https://ticcaml.github.io/policies/bundle.tar.gz
     services:
       - name: controller
         url: https://ticcaml.github.io
     bundles:
       authz:
         service: controller
-        resource: bundles/bundle.tar.gz
+        resource: policies/bundle.tar.gz
 ---
 
 # OPA policy
@@ -167,7 +167,7 @@ apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
   name: opa-authz
-  # namespace: istio-system
+  # namespace: default
 spec:
   selector:
     matchLabels:
