@@ -25,13 +25,14 @@ required_roles[r] {
 	perm.path = http_request.path
 }
 
+# extract username from Basic auth header
 user_name = parsed {
 	[_, encoded] := split(http_request.headers.authorization, " ")
 	[parsed, _] := split(base64url.decode(encoded), ":")
 }
 
 user_roles = {
-	"alice": ["guest"],
+	"charlie": ["guest"],
 	"bob": ["admin"],
 }
 
